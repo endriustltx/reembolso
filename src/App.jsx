@@ -9,6 +9,7 @@ import NotasFiscaisPage from './pages/NotasFiscaisPage'
 import RelatorioPage from './pages/RelatorioPage'
 import ColaboradoresPage from './pages/ColaboradoresPage'
 import NovoLancamentoModal from './components/NovoLancamentoModal'
+import PerfilPage from './pages/PerfilPage'
 
 function LoadingScreen() {
   return (
@@ -34,16 +35,17 @@ function LoadingScreen() {
 export default function App() {
   const { user, profile, loading, isAdm } = useAuth()
   const [page, setPage] = useState(null)
+  const [filtroUserId, setFiltroUserId] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
 
   if (loading) return <LoadingScreen />
   if (!user || !profile) return <LoginPage />
 
-  // Página padrão por role
   const currentPage = page || (isAdm ? 'dashboard' : 'meus-lancamentos')
 
-  function navigate(p) {
+  function navigate(p, userId = null) {
     if (p === 'novo-lancamento') { setModalOpen(true); return }
+    setFiltroUserId(userId)
     setPage(p)
   }
 
@@ -57,7 +59,7 @@ export default function App() {
           <DashboardPage onNavigate={navigate} />
         )}
         {isAdm && currentPage === 'todos-lancamentos' && (
-          <MeusLancamentosPage isAdm={true} />
+          <MeusLancamentosPage isAdm={true} userId={filtroUserId} />
         )}
         {isAdm && currentPage === 'relatorio' && (
           <RelatorioPage />
@@ -74,9 +76,9 @@ export default function App() {
         {!isAdm && currentPage === 'meus-lancamentos' && (
           <MeusLancamentosPage isAdm={false} />
         )}
+        {currentPage === 'perfil' && <PerfilPage />}
       </main>
 
-      {/* Modal novo lançamento (para técnicos via sidebar) */}
       <NovoLancamentoModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}

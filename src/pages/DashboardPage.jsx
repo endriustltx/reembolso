@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { StatCard, Card, Badge, StatusBadge, DataTable, Loader, PageHeader, Btn } from '../components/UI'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 const fmt = v => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 const fmtH = min => `${Math.floor((min || 0) / 60)}h ${String((min || 0) % 60).padStart(2, '0')}m`
@@ -9,6 +9,7 @@ const fmtH = min => `${Math.floor((min || 0) / 60)}h ${String((min || 0) % 60).p
 export default function DashboardPage({ onNavigate }) {
   const [resumo, setResumo] = useState([])
   const [recentes, setRecentes] = useState([])
+  const [profiles, setProfiles] = useState({})
   const [loading, setLoading] = useState(true)
   const [mes, setMes] = useState(() => new Date().toISOString().slice(0, 7))
 
@@ -16,16 +17,20 @@ export default function DashboardPage({ onNavigate }) {
 
   async function loadData() {
     setLoading(true)
-    // Busca resumo por colaborador (view)
-    const { data: r } = await supabase
-      .from('resumo_colaboradores')
-      .select('*')
+
+    const { data: r } = await supabase.from('resumo_colaboradores').select('*')
     setResumo(r || [])
 
-    // Lançamentos recentes (todos os tipos)
+    const { data: profs } = await supabase.from('profiles').select('id, nome')
+    if (profs) {
+      const map = {}
+      profs.forEach(p => { map[p.id] = p.nome })
+      setProfiles(map)
+    }
+
     const { data: km } = await supabase
       .from('lancamentos_km')
-      .select('*, profiles(nome)')
+      .select('*')
       .order('criado_em', { ascending: false })
       .limit(5)
     setRecentes(km || [])
@@ -86,27 +91,44 @@ export default function DashboardPage({ onNavigate }) {
           </ResponsiveContainer>
         </Card>
 
-        {/* Resumo colaboradores */}
+        {/* Resumo colaboradores — clicável */}
         <Card>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--g7-navy)', marginBottom: '16px' }}>Resumo por Colaborador</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--g7-navy)', marginBottom: '4px' }}>Resumo por Colaborador</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>Clique para ver os lançamentos</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {resumo.map(r => {
               const total = Number(r.total_combustivel||0)+Number(r.total_noc||0)+Number(r.total_alimentacao||0)
               const initials = r.nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()
               return (
-                <div key={r.id} style={{ display:'flex', alignItems:'center', gap:'12px', padding:'10px 0', borderBottom:'1px solid var(--border)' }}>
-                  <div style={{ width:'34px',height:'34px',borderRadius:'50%',background:'var(--surface-2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'12px',fontWeight:600,color:'var(--text-secondary)',flexShrink:0 }}>{initials}</div>
+                <div
+                  key={r.id}
+                  onClick={() => onNavigate('todos-lancamentos', r.id)}
+                  style={{
+                    display:'flex', alignItems:'center', gap:'12px',
+                    padding:'10px 10px',
+                    borderRadius:'var(--radius-md)',
+                    cursor:'pointer',
+                    transition:'background 0.15s',
+                    borderBottom:'1px solid var(--border)',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background='var(--surface)'}
+                  onMouseLeave={e => e.currentTarget.style.background='transparent'}
+                >
+                  <div style={{ width:'36px',height:'36px',borderRadius:'50%',background:'var(--surface-2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'12px',fontWeight:600,color:'var(--text-secondary)',flexShrink:0 }}>{initials}</div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:'13px',fontWeight:500,color:'var(--text-primary)' }}>{r.nome}</div>
                     <div style={{ fontSize:'11px',color:'var(--text-muted)',marginTop:'2px' }}>
                       Banco: {fmtH(r.banco_horas_minutos)} · NOC: {fmt(r.total_noc)}
                     </div>
                   </div>
-                  <div style={{ fontSize:'14px',fontWeight:600,color:'var(--g7-navy)',fontVariantNumeric:'tabular-nums' }}>{fmt(total)}</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                    <div style={{ fontSize:'14px',fontWeight:600,color:'var(--g7-navy)',fontVariantNumeric:'tabular-nums' }}>{fmt(total)}</div>
+                    <i className="ti ti-chevron-right" style={{ fontSize:'14px', color:'var(--text-muted)' }} />
+                  </div>
                 </div>
               )
             })}
-            {resumo.length === 0 && <p style={{ fontSize:'13px',color:'var(--text-muted)',textAlign:'center',padding:'20px 0' }}>Nenhum dado encontrado para o período.</p>}
+            {resumo.length === 0 && <p style={{ fontSize:'13px',color:'var(--text-muted)',textAlign:'center',padding:'20px 0' }}>Nenhum dado encontrado.</p>}
           </div>
         </Card>
       </div>
@@ -119,12 +141,12 @@ export default function DashboardPage({ onNavigate }) {
         </div>
         <DataTable
           columns={[
-            { label: 'Técnico', key: 'profiles', render: r => r.profiles?.nome || '—' },
+            { label: 'Técnico', render: r => profiles[r.user_id] || '—' },
             { label: 'Data', render: r => new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR') },
             { label: 'Cliente', key: 'cliente' },
             { label: 'Tipo', render: r => <Badge variant={r.tipo==='ida'?'blue':'amber'}>{r.tipo}</Badge> },
             { label: 'Km', render: r => `${r.km_total} km`, align: 'right' },
-            { label: 'Valor', render: r => <span style={{fontWeight:500,fontVariantNumeric:'tabular-nums'}}>{fmt(r.valor_combustivel)}</span>, align: 'right' },
+            { label: 'Valor', render: r => <span style={{fontWeight:500}}>{fmt(r.valor_combustivel)}</span>, align: 'right' },
             { label: 'Status', render: r => <StatusBadge status={r.status} /> },
             { label: '', render: r => r.status==='pendente' ? (
               <Btn size="sm" variant="orange" onClick={() => aprovar('lancamentos_km', r.id)}>Aprovar</Btn>

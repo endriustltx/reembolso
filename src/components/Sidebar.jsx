@@ -10,6 +10,8 @@ const admNav = [
   { id: 'relatorio', icon: 'ti-chart-bar', label: 'Relatório Mensal' },
   { section: 'Administração' },
   { id: 'colaboradores', icon: 'ti-user-cog', label: 'Colaboradores' },
+  { section: 'Conta' },
+  { id: 'perfil', icon: 'ti-user-circle', label: 'Meu Perfil' },
 ]
 
 const tecnicoNav = [
@@ -18,6 +20,8 @@ const tecnicoNav = [
   { id: 'banco-horas', icon: 'ti-clock', label: 'Banco de Horas' },
   { id: 'notas-fiscais', icon: 'ti-file-invoice', label: 'Notas Fiscais' },
   { id: 'novo-lancamento', icon: 'ti-plus', label: 'Novo Lançamento', accent: true },
+  { section: 'Conta' },
+  { id: 'perfil', icon: 'ti-user-circle', label: 'Meu Perfil' },
 ]
 
 export default function Sidebar({ currentPage, onNavigate }) {
