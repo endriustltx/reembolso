@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { Card, DataTable, Loader, PageHeader, Btn, Badge, Modal, FormField, Input, Select, Alert } from '../components/UI'
 
-async function chamarEdgeFunction(session, body, method = 'POST') {
+async function chamarEdgeFunction(session, body) {
   const res = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/clever-action`,
     {
-      method,
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`,
@@ -109,19 +109,12 @@ export default function ColaboradoresPage() {
     setError(''); setSaving(true)
     try {
       const session = await getSession()
-      await chamarEdgeFunction(session, { user_id: selected.id }, 'DELETE')
+      await chamarEdgeFunction(session, { action: 'delete', user_id: selected.id })
       setSuccess(`Usuário ${selected.nome} removido.`)
       setDeleteModal(false)
       setSelected(null)
       load()
-    } catch (err) {
-      // Tenta deletar só o profile mesmo se edge function falhar
-      await supabase.from('profiles').delete().eq('id', selected.id)
-      setSuccess(`Usuário ${selected?.nome} removido do sistema.`)
-      setDeleteModal(false)
-      setSelected(null)
-      load()
-    }
+    } catch (err) { setError(err.message) }
     finally { setSaving(false) }
   }
 
