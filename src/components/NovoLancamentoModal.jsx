@@ -3,6 +3,8 @@ import { supabase, uploadNotaFiscal } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Modal, FormField, Input, Select, Textarea, Btn, Alert, UploadArea } from './UI'
 
+const VALOR_KM = 1.86
+
 const TIPOS = [
   { id: 'km',   label: 'Km / Combustível', icon: 'ti-gas-station', color: '#D97706' },
   { id: 'hora', label: 'Horas (Banco)',     icon: 'ti-clock',       color: '#7C3AED' },
@@ -20,6 +22,11 @@ export default function NovoLancamentoModal({ open, onClose, onSaved }) {
 
   function set(field, value) {
     setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  function handleKmChange(km) {
+    const valorCalculado = km ? (Number(km) * VALOR_KM).toFixed(2) : ''
+    setForm(prev => ({ ...prev, km_total: km, valor_combustivel: valorCalculado }))
   }
 
   function reset() {
@@ -105,7 +112,6 @@ export default function NovoLancamentoModal({ open, onClose, onSaved }) {
         insertedId = data.id
       }
 
-      // Upload NF se houver
       if (nfFile && insertedId) {
         await uploadNotaFiscal(nfFile, profile.id, tipo === 'hora' ? 'horas' : tipo === 'alim' ? 'alimentacao' : tipo, insertedId)
       }
@@ -128,16 +134,11 @@ export default function NovoLancamentoModal({ open, onClose, onSaved }) {
             key={t.id}
             onClick={() => { setTipo(t.id); setForm({}); setNfFile(null) }}
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '12px 8px',
-              borderRadius: 'var(--radius-md)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+              padding: '12px 8px', borderRadius: 'var(--radius-md)',
               border: tipo === t.id ? `2px solid ${t.color}` : '1px solid var(--border)',
               background: tipo === t.id ? `${t.color}12` : 'var(--surface)',
-              cursor: 'pointer',
-              transition: 'all 0.15s',
+              cursor: 'pointer', transition: 'all 0.15s',
               color: tipo === t.id ? t.color : 'var(--text-muted)',
             }}
           >
@@ -160,11 +161,41 @@ export default function NovoLancamentoModal({ open, onClose, onSaved }) {
               <option value="volta">Volta</option>
             </Select>
           </FormField>
-          <FormField label="Km rodados" required><Input type="number" min="0" step="0.1" placeholder="0" value={form.km_total||''} onChange={e=>set('km_total',e.target.value)} /></FormField>
+          <FormField label="Km rodados" required>
+            <Input
+              type="number" min="0" step="0.1" placeholder="0"
+              value={form.km_total||''}
+              onChange={e => handleKmChange(e.target.value)}
+            />
+          </FormField>
           <FormField label="Endereço de partida" required col={2}><Input placeholder="Rua, número, cidade" value={form.partida||''} onChange={e=>set('partida',e.target.value)} /></FormField>
           <FormField label="Destino 1" required col={2}><Input placeholder="Rua, número, cidade" value={form.destino1||''} onChange={e=>set('destino1',e.target.value)} /></FormField>
           <FormField label="Destino 2 (opcional)" col={2}><Input placeholder="Rua, número, cidade" value={form.destino2||''} onChange={e=>set('destino2',e.target.value)} /></FormField>
-          <FormField label="Valor combustível (R$)"><Input type="number" min="0" step="0.01" placeholder="0,00" value={form.valor_combustivel||''} onChange={e=>set('valor_combustivel',e.target.value)} /></FormField>
+
+          {/* Valor calculado automaticamente */}
+          <FormField label="Valor combustível (R$)" col={2}>
+            <div style={{
+              padding: '9px 12px',
+              background: form.km_total ? 'var(--green-bg)' : 'var(--surface)',
+              border: `1px solid ${form.km_total ? 'var(--green-border)' : 'var(--border-strong)'}`,
+              borderRadius: 'var(--radius-md)',
+              fontSize: '14px', fontWeight: 600,
+              color: form.km_total ? 'var(--green)' : 'var(--text-muted)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <span>
+                {form.km_total
+                  ? `R$ ${(Number(form.km_total) * VALOR_KM).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                  : 'Informe os km para calcular'}
+              </span>
+              {form.km_total && (
+                <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text-muted)' }}>
+                  {form.km_total} km × R$ {VALOR_KM.toFixed(2).replace('.', ',')}
+                </span>
+              )}
+            </div>
+          </FormField>
+
           <FormField label="Estacionamento (R$)"><Input type="number" min="0" step="0.01" placeholder="0,00" value={form.estacionamento||''} onChange={e=>set('estacionamento',e.target.value)} /></FormField>
           <FormField label="Observações" col={2}><Textarea placeholder="Informações adicionais..." value={form.observacao||''} onChange={e=>set('observacao',e.target.value)} /></FormField>
           <FormField label="Nota Fiscal" col={2}><UploadArea onFile={setNfFile} fileName={nfFile?.name} /></FormField>
