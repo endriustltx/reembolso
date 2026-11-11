@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { fmtDate } from '../lib/format'
 import { useAuth } from '../hooks/useAuth'
 import { Card, StatCard, Badge, DataTable, Loader, PageHeader, Btn, Modal, FormField, Input, Select, Alert } from '../components/UI'
 
 const fmt = v => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—'
 const fmtH = min => {
   const m = Math.abs(min || 0)
   return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`

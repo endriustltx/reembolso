@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { fmtDate } from '../lib/format'
 import { StatCard, Card, Badge, StatusBadge, DataTable, Loader, PageHeader, Btn } from '../components/UI'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -167,7 +168,7 @@ export default function DashboardPage({ onNavigate }) {
         <DataTable
           columns={[
             { label: 'Técnico', render: r => profiles[r.user_id] || '—' },
-            { label: 'Data', render: r => new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR') },
+            { label: 'Data', render: r => fmtDate(r.data) },
             { label: 'Cliente', key: 'cliente' },
             { label: 'Tipo', render: r => <Badge variant={r.tipo==='ida'?'blue':'amber'}>{r.tipo}</Badge> },
             { label: 'Km', render: r => `${r.km_total} km`, align: 'right' },

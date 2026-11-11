@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { fmtDate } from '../lib/format'
 import { useAuth } from '../hooks/useAuth'
 import { Card, Badge, StatusBadge, DataTable, Loader, PageHeader, Btn, StatCard, Alert } from '../components/UI'
 import NovoLancamentoModal from '../components/NovoLancamentoModal'
 
 const fmt = v => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—'
 const fmtH = min => `${Math.floor((min || 0) / 60)}h ${String((min || 0) % 60).padStart(2, '0')}m`
 
 const TABS = [
